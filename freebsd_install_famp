@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+find_newest_package()
+{
+    base="$1"
+    IFS=$'\n'
+    rexp="^${base}[[:digit:]]+-[[:digit:]]+"
+    local -a candidates=( $( pkg search "$base" | grep -E -e $rexp ) )
+    if [ "${#candidates[@]}" -gt 0 ]; then
+        IFS=$' '
+        local -a canparts=( ${candidates[@]: -1:1} )
+        echo "${canparts[0]}"
+        return 0
+    fi
+    return 1
+    }
+
+identify_apache()
+{
+    IFS=$'\n'
+    local -a candidates=( $( pkg search apache | grep ^apache[[:digit:]+] ) )
+    if [ "${#candidates[@]}" -gt 0 ]; then
+        IFS=$' '
+        local -a canparts=( ${candidates[@]: -1:1} )
+        echo "${canparts[0]}"
+        return 0
+    fi
+    return 1
+}
+
+identify_mariadb()
+{
+    find_newest_package mariadb
+}
+
+identify_php()
+{
+    find_newest_package php
+}
+
+
+pkg_apache=$( identify_apache )
+pkg_mariadb=$( identify_mariadb )
+pkg_php=$( identify_php )
+
+echo $pkg_apache
+echo $pkg_mariadb
+echo $pkg_php
