@@ -1,48 +1,88 @@
 #!/usr/bin/env bash
 
+source list_toggler
+
 find_newest_package()
 {
     base="$1"
     IFS=$'\n'
-    rexp="^${base}[[:digit:]]+-[[:digit:]]+"
-    local -a candidates=( $( pkg search "$base" | grep -E -e $rexp ) )
-    if [ "${#candidates[@]}" -gt 0 ]; then
-        IFS=$' '
-        local -a canparts=( ${candidates[@]: -1:1} )
-        echo "${canparts[0]}"
-        return 0
+    rexp1="^${base}[[:digit:]]+-[[:digit:]]+"
+    rexp2="^${base}[[:digit:]]+-[[:alnum:]]+"
+    local -a candidates
+    candidates=( $( pkg search "$base" | grep -E -e $rexp1 ) )
+    if [ $? -ne 0 ] || [ "${#candidates[@]}" -eq 0 ]; then
+        candidates=( $( pkg search "$base" | grep -E -e $rexp2 ) )
+        if [ $? -ne 0 ] || [ "${#candidates[@]}" -eq 0 ]; then
+            echo "Unable to find package for $base." >&2
+            return 1
+        fi
     fi
-    return 1
-    }
-
-identify_apache()
-{
-    IFS=$'\n'
-    local -a candidates=( $( pkg search apache | grep ^apache[[:digit:]+] ) )
-    if [ "${#candidates[@]}" -gt 0 ]; then
-        IFS=$' '
-        local -a canparts=( ${candidates[@]: -1:1} )
-        echo "${canparts[0]}"
-        return 0
-    fi
-    return 1
+    
+    IFS=$' '
+    local -a canparts=( ${candidates[@]: -1:1} )
+    echo "${canparts[0]}"
+    return 0
 }
 
-identify_mariadb()
+install_apache()
 {
-    find_newest_package mariadb
+    local pkg_apache=$( find_newest_package apache )
+    echo "Would be installing $pkg_apache"
 }
 
-identify_php()
+install_fastcgi()
 {
-    find_newest_package php
+    local -a options=( $( pkg search -n fastcgi | grep -E -e ap[[:digit:]]+-mod_fastgi ) )
+    for option in "${options[@]}"; do
+        echo "For fastcgi loading $option"
+    done
+}
+
+install_mariadb()
+{
+    local pkg_mariadb=$( find_newest_package mariadb )
+    echo "Would be installing $pkg_mariadb"
+}
+
+install_php()
+{
+    local pkg_php=$( find_newest_package php )
+    echo "Would be installing $pkg_php"
+}
+
+install_from_guidance()
+{
+    local name_apps="$1"
+    local name_choices="$2"
+
+    local -n apps="$name_apps"
+    local -n choices="$name_choices"
+    local -i value
+    local app_loader
+
+    for app in "${apps[@]}"; do
+        value="${choices[$app]}"
+        if [ "$value" -ne 0 ]; then
+            app_loader="install_${app}"
+            $app_loader
+        else
+            echo "Not installing $app"
+        fi
+    done
 }
 
 
-pkg_apache=$( identify_apache )
-pkg_mariadb=$( identify_mariadb )
-pkg_php=$( identify_php )
 
-echo $pkg_apache
-echo $pkg_mariadb
-echo $pkg_php
+
+
+########################
+######### Main #########
+########################
+
+declare -a packages=( apache mariadb fastcgi php )
+declare -A guidance
+
+if toggler "packages" "guidance"; then
+    install_from_guidance "packages" "guidance"
+fi
+
