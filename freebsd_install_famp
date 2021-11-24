@@ -2,6 +2,11 @@
 
 source list_toggler
 
+announce() { echo "[34;1m${1}[m"; }
+
+is_root() { [ "$USER" == "root" ]; }
+is_bsd() { [[ "BSD" =~ $( uname ) ]]; }
+
 find_newest_package()
 {
     base="$1"
@@ -24,30 +29,77 @@ find_newest_package()
     return 0
 }
 
+make_pkg_array()
+{
+    local package="$1"
+    local -i force="$2"
+    echo "pkg"
+    echo "install"
+    if [ "$force" -eq 0 ]; then
+        echo " -n"   # needs preceeding space for it to print (?!)
+    fi
+    echo "$package"
+}
+
 install_apache()
 {
-    local pkg_apache=$( find_newest_package apache )
-    echo "Would be installing $pkg_apache"
+    local -i force="${1:-0}"
+    local package=$( find_newest_package apache )
+
+    announce "Installing Apache ($package)"
+
+    if [ "$package" ]; then
+        local -a args=( $( make_pkg_array $package $force ) )
+        "${args[@]}"
+        echo
+    fi
 }
 
 install_fastcgi()
 {
-    local -a options=( $( pkg search -n fastcgi | grep -E -e ap[[:digit:]]+-mod_fastgi ) )
-    for option in "${options[@]}"; do
-        echo "For fastcgi loading $option"
-    done
+    local -i force="${1:-0}"
+    local -a options=( $( pkg search fastcgi | grep -Eo -e ap[[:digit:]]+-mod_fastgi ) )
+    local package
+    if [ "${#options[@]}" -gt 0 ]; then
+        package=( ${options[@]: -1:1} )
+    fi
+
+    announce "Installing FastCGI ($package)"
+
+    if [ "$package" ]; then
+        local -a args=( $( make_pkg_array $package $force ) )
+        "${args[@]}"
+        echo
+    fi
 }
 
 install_mariadb()
 {
-    local pkg_mariadb=$( find_newest_package mariadb )
-    echo "Would be installing $pkg_mariadb"
+    local -i force="${1:-0}"
+    local package=$( find_newest_package mariadb )
+
+    announce "Installing MariaDB ($package)"
+
+    if [ "$package" ]; then
+        local -a args=( $( make_pkg_array $package $force ) )
+        "${args[@]}"
+        echo
+    fi
 }
 
 install_php()
 {
-    local pkg_php=$( find_newest_package php )
-    echo "Would be installing $pkg_php"
+    announce "Installing PHP"
+    local -i force="${1:-0}"
+    local package=$( find_newest_package php )
+
+    announce "Installing PHP ($package)"
+
+    if [ "$package" ]; then
+        local -a args=( $( make_pkg_array $package $force ) )
+        "${args[@]}"
+        echo
+    fi
 }
 
 install_from_guidance()
@@ -75,14 +127,45 @@ install_from_guidance()
 
 
 
+## list_toggler Customizations:
+
+toggler_print_choice()
+{
+    local key="$1"
+    local -i value="$2" hilite="$3"
+    local lineval="$key"
+
+    if [ "$value" -eq 0 ]; then
+        lineval="[31;1m$lineval NOT selected"
+    else
+        lineval="[32;1m$lineval selected"
+    fi
+
+    if [ "$hilite" -ne 0 ]; then
+        lineval="[43m${lineval}"
+    fi
+
+    echo "$lineval[m"
+}
+
+T_INTRO="Please select the packages you want to install:"$'\n'
+
 ########################
 ######### Main #########
 ########################
 
-declare -a packages=( apache mariadb fastcgi php )
-declare -A guidance
+if is_bsd; then
+    if is_root; then
+        declare -a packages=( apache mariadb fastcgi php )
+        declare -A guidance
 
-if toggler "packages" "guidance"; then
-    install_from_guidance "packages" "guidance"
+        if toggler "packages" "guidance"; then
+            install_from_guidance "packages" "guidance"
+        fi
+    else
+        echo "You must be root to install software."
+    fi
+else
+    echo "You must be on a BSD system to use 'pkg' package manager."
 fi
 
