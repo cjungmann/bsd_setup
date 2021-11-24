@@ -5,7 +5,7 @@ source list_toggler
 announce() { echo "[34;1m${1}[m"; }
 
 is_root() { [ "$USER" == "root" ]; }
-is_bsd() { [[ "BSD" =~ $( uname ) ]]; }
+is_bsd() { [[ $( uname ) =~ "BSD" ]]; }
 
 find_newest_package()
 {
