@@ -43,10 +43,12 @@ make_pkg_array()
 
 install_apache()
 {
+    announce "Attempting to install Apache"
+    
     local -i force="${1:-0}"
     local package=$( find_newest_package apache )
 
-    announce "Installing Apache ($package)"
+    announce "package is '$package'"
 
     if [ "$package" ]; then
         local -a args=( $( make_pkg_array $package $force ) )
@@ -57,14 +59,18 @@ install_apache()
 
 install_fastcgi()
 {
+    announce "Attempting to install FastCGI"
+
     local -i force="${1:-0}"
-    local -a options=( $( pkg search fastcgi | grep -Eo -e ap[[:digit:]]+-mod_fastgi ) )
+    local -a options=( $( pkg search fastcgi | grep -Eo -e ^ap[[:digit:]]+-mod_fastcgi ) )
     local package
     if [ "${#options[@]}" -gt 0 ]; then
         package=( ${options[@]: -1:1} )
+    else
+        echo "We didn't find any partial matches.  Bummer." >&2
     fi
 
-    announce "Installing FastCGI ($package)"
+    announce "package is '$package'"
 
     if [ "$package" ]; then
         local -a args=( $( make_pkg_array $package $force ) )
@@ -75,10 +81,12 @@ install_fastcgi()
 
 install_mariadb()
 {
+    announce "Attempting to install MariaDB"
+    
     local -i force="${1:-0}"
     local package=$( find_newest_package mariadb )
 
-    announce "Installing MariaDB ($package)"
+    announce "package is '$package'"
 
     if [ "$package" ]; then
         local -a args=( $( make_pkg_array $package $force ) )
@@ -89,11 +97,12 @@ install_mariadb()
 
 install_php()
 {
-    announce "Installing PHP"
+    announce "Attempting to install PHP"
+
     local -i force="${1:-0}"
     local package=$( find_newest_package php )
 
-    announce "Installing PHP ($package)"
+    announce "package is '$package'"
 
     if [ "$package" ]; then
         local -a args=( $( make_pkg_array $package $force ) )
