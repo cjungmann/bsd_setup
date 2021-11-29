@@ -166,7 +166,7 @@ T_INTRO="Please select the packages you want to install:"$'\n'
 if is_bsd; then
     if is_root; then
         declare -a packages=( apache mariadb fastcgi php )
-        declare -A guidance
+        declare -A guidance=( [apache]=1 [mariadb]=1 [fastcgi]=1 )
 
         if toggler "packages" "guidance"; then
             install_from_guidance "packages" "guidance"
