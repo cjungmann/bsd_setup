@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+source list_toggler
+
+is_root() { [ "$USER" == "root" ]; }
+is_bsd()  { [[ $( uname ) =~ "BSD" ]]; }
+
+find_newest_package()
+{
+    base="$1"
+    IFS=$'\n'
+    rexp1="^${base}[[:digit:]]+-[[:digit:]]+"
+    rexp2="^${base}[[:digit:]]+-[[:alnum:]]+"
+    local -a candidates
+    candidates=( $( pkg search "$base" | grep -E -e $rexp1 ) )
+    if [ $? -ne 0 ] || [ "${#candidates[@]}" -eq 0 ]; then
+        candidates=( $( pkg search "$base" | grep -E -e $rexp2 ) )
+        if [ $? -ne 0 ] || [ "${#candidates[@]}" -eq 0 ]; then
+            echo "Unable to find package for $base." >&2
+            return 1
+        fi
+    fi
+    
+    IFS=$' '
+    local -a canparts=( ${candidates[@]: -1:1} )
+    echo "${canparts[0]}"
+    return 0
+}
+
+install_pkg()
+{
+    local requested_name="$1"
+    local pkg_name=$( find_newest_package "$requested_name" )
+    echo "Installing $pkg_name, if you please."
+}
+
+install_schemaserver()
+{
+    echo "Installing schemaserver"
+}
+
+install_from_guidance()
+{
+    local -n keys="$1"
+    local -n map="$2"
+
+    local key
+    local -i value
+
+    for key in "${keys[@]}"; do
+        value="${map[$key]}"
+        install_function="install_$key"
+        if [ "$value" -ne 0 ]; then
+            if [[ $( type -t "$install_function" ) == "function" ]]; then
+                "$install_function"
+            else
+                install_pkg "$key"
+            fi
+        fi
+    done
+
+}
+
+declare -a packages=( emacs-nox texinfo wget schemaserver )
+declare -A guidance=()
+
+if toggler "packages" "guidance"; then
+    # if is_bsd; then
+    #     if is_root; then
+            install_from_guidance "packages" "guidance"
+    #     else
+    #         echo "You must be root to install software"
+    #     fi
+    # else
+    #     echo "You must be on a BSD system to use 'pkg' package manager."
+    # fi
+fi
