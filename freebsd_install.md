@@ -4,7 +4,7 @@ While installing FreeBSD from a LiveCD, the user will be asked
 to enable and disable various security accommodations and for
 a root password.
 
-## Preparing FreeBSD for Remove Users
+## Preparing FreeBSD for Remote Users
 
 - Ensure the **sshd** option is enabled (it is enabled by default,
   don't disable it).
